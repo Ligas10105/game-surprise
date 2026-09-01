@@ -1,0 +1,1731 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gotowa na odlot? ✈️</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            overflow: hidden;
+            touch-action: none;
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        canvas { display: block; }
+
+        /* ===== OVERLAY SYSTEM ===== */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: opacity 0.4s ease;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .screen {
+            text-align: center;
+            padding: 2rem;
+            max-width: 90vw;
+        }
+
+        /* ===== MENU SCREEN ===== */
+        #menuScreen {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 50%, #a8e6cf 100%);
+        }
+
+        #menuScreen h1 {
+            font-size: clamp(1.8rem, 6vw, 3rem);
+            font-weight: 900;
+            color: #2d3436;
+            margin-bottom: 0.3rem;
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.5);
+        }
+
+        #menuScreen .subtitle {
+            font-size: clamp(1rem, 3.5vw, 1.4rem);
+            color: #636e72;
+            margin-bottom: 2rem;
+            font-weight: 700;
+        }
+
+        #menuScreen .instructions {
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+            color: #636e72;
+            margin-top: 1.5rem;
+            line-height: 1.6;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-block;
+            padding: 1rem 3rem;
+            font-size: clamp(1.2rem, 4vw, 1.6rem);
+            font-weight: 900;
+            font-family: inherit;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #ff9a56, #ff6b6b);
+            color: white;
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-retry {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            box-shadow: 0 6px 20px rgba(9, 132, 227, 0.4);
+        }
+
+        .btn-wallet {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            color: white;
+            box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+            padding: 1.2rem 2rem;
+            line-height: 1.4;
+        }
+
+        .btn-wallet small {
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        /* ===== QUESTION OVERLAY ===== */
+        #questionOverlay {
+            pointer-events: none;
+            align-items: flex-start;
+            padding-top: 1.5rem;
+            z-index: 5;
+        }
+
+        .question-box {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1rem 1.5rem;
+            max-width: 90vw;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            border: 3px solid #fdcb6e;
+        }
+
+        .question-box p {
+            font-size: clamp(0.95rem, 3.2vw, 1.3rem);
+            font-weight: 700;
+            color: #2d3436;
+            line-height: 1.4;
+        }
+
+        /* ===== GAME OVER SCREEN ===== */
+        #gameOverScreen {
+            background: linear-gradient(135deg, #dfe6e9 0%, #b2bec3 100%);
+        }
+
+        #gameOverScreen h1 {
+            font-size: 4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        #gameOverScreen h2 {
+            font-size: clamp(1.4rem, 5vw, 2rem);
+            font-weight: 900;
+            color: #d63031;
+            margin-bottom: 2rem;
+        }
+
+        /* ===== WIN SCREEN — PORTUGAL CELEBRATION ===== */
+        #winScreen {
+            background: linear-gradient(180deg, #ff7675 0%, #e17055 35%, #fdcb6e 70%, #feca57 100%);
+            overflow-y: auto;
+            padding: 1.5rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .win-container {
+            width: 100%;
+            max-width: 440px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Plane fly-by animation */
+        .plane-anim {
+            position: absolute;
+            top: -20px;
+            left: -100px;
+            font-size: 2.2rem;
+            animation: flyAcross 6s ease-in-out infinite;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
+            pointer-events: none;
+        }
+
+        @keyframes flyAcross {
+            0% { transform: translate(0, 40px) rotate(15deg) scale(0.8); opacity: 0; }
+            10% { opacity: 1; }
+            50% { transform: translate(300px, -20px) rotate(5deg) scale(1.1); }
+            90% { opacity: 1; }
+            100% { transform: translate(550px, -80px) rotate(-10deg) scale(0.9); opacity: 0; }
+        }
+
+        /* Couple display */
+        .couple-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 0.8rem;
+            position: relative;
+        }
+
+        .couple-char {
+            height: clamp(100px, 26vw, 135px);
+            width: auto;
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.25));
+        }
+
+        .couple-char.him {
+            animation: bounce 0.6s ease infinite alternate;
+        }
+
+        .couple-char.her {
+            animation: bounce 0.6s ease infinite alternate 0.3s;
+        }
+
+        .heart-bubble {
+            position: absolute;
+            top: -10px;
+            font-size: 1.8rem;
+            animation: pulseHeart 1s ease-in-out infinite;
+        }
+
+        @keyframes pulseHeart {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.35) rotate(8deg); }
+        }
+
+        .win-title {
+            font-size: clamp(1.6rem, 5.5vw, 2.3rem);
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow: 0 3px 12px rgba(0,0,0,0.35);
+            margin-bottom: 0.2rem;
+            line-height: 1.2;
+        }
+
+        .win-subtitle {
+            font-size: clamp(0.95rem, 3.5vw, 1.2rem);
+            color: #ffeaa7;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
+
+        .win-country {
+            font-size: clamp(1.8rem, 6.5vw, 2.6rem);
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: 2px;
+            display: inline-block;
+            background: linear-gradient(135deg, #ffeaa7, #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 15px rgba(214, 48, 49, 0.4);
+            margin-bottom: 0.8rem;
+        }
+
+        /* ===== BOARDING PASS TICKET CARD ===== */
+        .boarding-pass {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 1.2rem;
+            margin: 0.8rem auto 1.2rem;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.22);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            position: relative;
+            text-align: left;
+            color: #2d3436;
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px dashed #dfe6e9;
+            padding-bottom: 0.6rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .ticket-logo {
+            font-weight: 900;
+            font-size: 0.85rem;
+            color: #d63031;
+            letter-spacing: 1px;
+        }
+
+        .ticket-class {
+            background: #ffeaa7;
+            color: #d35400;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .ticket-route {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            text-align: center;
+        }
+
+        .airport-code {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #2d3436;
+            line-height: 1;
+        }
+
+        .airport-name {
+            font-size: 0.75rem;
+            color: #636e72;
+            font-weight: 700;
+        }
+
+        .flight-icon {
+            font-size: 1.4rem;
+            color: #e17055;
+            animation: planeWiggle 2s ease infinite;
+        }
+
+        @keyframes planeWiggle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        .ticket-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            background: #f8f9fa;
+            padding: 0.6rem;
+            border-radius: 10px;
+            margin-bottom: 0.6rem;
+        }
+
+        .detail-label {
+            color: #b2bec3;
+            font-weight: 700;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+        }
+
+        .detail-value {
+            color: #2d3436;
+            font-weight: 800;
+            font-size: 0.82rem;
+        }
+
+        /* ===== APPLE WALLET BUTTON ===== */
+        .btn-apple-wallet {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #000000;
+            color: #ffffff;
+            padding: 0.95rem 1.4rem;
+            border-radius: 16px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: clamp(0.95rem, 3.4vw, 1.15rem);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            border: 2px solid #333333;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            width: 100%;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-apple-wallet:active {
+            transform: scale(0.96);
+        }
+
+        .wallet-badge-icon {
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+        .wallet-text-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.2;
+        }
+
+        .wallet-subtext {
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #b2bec3;
+        }
+
+        /* Music control floating badge */
+        .music-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.4);
+            color: #ffffff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-top: 0.8rem;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-8px); }
+        }
+
+        /* ===== DAMAGE FLASH ===== */
+        #damageFlash {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 0, 0, 0.35);
+            pointer-events: none;
+            z-index: 8;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #damageFlash.active {
+            opacity: 1;
+            transition: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="damageFlash"></div>
+
+    <!-- MENU -->
+    <div id="menuScreen" class="overlay">
+        <div class="screen">
+            <h1>🎮 Mam dla Ciebie niespodziankę!</h1>
+            <p class="subtitle">Ale najpierw... mały quiz! 💕</p>
+            <button id="startBtn" class="btn btn-start">START</button>
+            <p class="instructions">Przesuwaj w lewo/prawo (Swipe).<br>Omijaj przeszkody i odpowiadaj na pytania!</p>
+        </div>
+    </div>
+
+    <!-- QUESTION (shown during quiz phase) -->
+    <div id="questionOverlay" class="overlay hidden">
+        <div class="question-box">
+            <p id="questionText"></p>
+        </div>
+    </div>
+
+    <!-- GAME OVER -->
+    <div id="gameOverScreen" class="overlay hidden">
+        <div class="screen">
+            <h1>😅💨</h1>
+            <h2>Ups! Spróbuj jeszcze raz!</h2>
+            <button id="retryBtn" class="btn btn-retry">Spróbuj ponownie</button>
+        </div>
+    </div>
+
+    <!-- WIN -->
+    <div id="winScreen" class="overlay hidden">
+        <div class="win-container">
+            <div class="plane-anim">✈️💨</div>
+
+            <!-- Couple together -->
+            <div class="couple-wrapper">
+                <img src="player_him.png" alt="Him" class="couple-char him">
+                <div class="heart-bubble">❤️</div>
+                <img src="runner_0.png" alt="Her" class="couple-char her">
+            </div>
+
+            <div class="win-title">UDAŁO SIĘ! 🇵🇹🎉</div>
+            <div class="win-subtitle">Pakuj walizkę, lecimy do...</div>
+            <div class="win-country">PORTUGALII! ☀️🌴</div>
+
+            <!-- Boarding Pass Ticket Card -->
+            <div class="boarding-pass">
+                <div class="ticket-header">
+                    <span class="ticket-logo">✈️ PORTUGAL AIRWAYS</span>
+                    <span class="ticket-class">FIRST CLASS VIP</span>
+                </div>
+
+                <div class="ticket-route">
+                    <div>
+                        <div class="airport-code">POL</div>
+                        <div class="airport-name">Polska</div>
+                    </div>
+                    <div class="flight-icon">✈️</div>
+                    <div>
+                        <div class="airport-code">LIS</div>
+                        <div class="airport-name">Portugalia 🇵🇹</div>
+                    </div>
+                </div>
+
+                <div class="ticket-details">
+                    <div>
+                        <div class="detail-label">Pasażer</div>
+                        <div class="detail-value">Dla Mojej Ukochanej ❤️</div>
+                    </div>
+                    <div>
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value">Potwierdzony! 🧳</div>
+                    </div>
+                    <div>
+                        <div class="detail-label">Miejsce</div>
+                        <div class="detail-value">Obok Mnie 💺</div>
+                    </div>
+                    <div>
+                        <div class="detail-label">Bramka</div>
+                        <div class="detail-value">29.09 💕</div>
+                    </div>
+                </div>
+
+                <!-- Apple Wallet Button -->
+                <a href="twoj-plik.pkpass" download="karta-pokladowa.pkpass" id="walletBtn" class="btn-apple-wallet">
+                    <svg class="wallet-badge-icon" viewBox="0 0 512 512" fill="none">
+                        <rect width="512" height="512" rx="115" fill="#1c1c1e"/>
+                        <path d="M120 160C120 137.909 137.909 120 160 120H352C374.091 120 392 137.909 392 160V352C392 374.091 374.091 392 352 392H160C137.909 392 120 374.091 120 352V160Z" fill="#2c2c2e"/>
+                        <path d="M160 170H352V195H160V170Z" fill="#30D158" rx="4"/>
+                        <path d="M160 210H352V235H160V210Z" fill="#FF9F0A" rx="4"/>
+                        <path d="M160 250H352V275H160V250Z" fill="#0A84FF" rx="4"/>
+                        <circle cx="330" cy="330" r="22" fill="#FF453A"/>
+                    </svg>
+                    <div class="wallet-text-col">
+                        <span>Dodaj do Apple Wallet</span>
+                        <span class="wallet-subtext">Pobierz Kartę Pokładową (.pkpass)</span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Music Floating Badge -->
+            <div id="musicToggle" class="music-badge">
+                <span id="musicIcon">🎵</span> <span id="musicStatus">M4IA - Portugal</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUDIO ELEMENTS -->
+    <audio id="gameplaySong" src="gameplay_music.mp3" preload="auto" loop></audio>
+    <audio id="portugalSong" src="portugal_m4ia.mp3" preload="auto" loop></audio>
+
+    <script>
+    // ============================================================
+    //  QUIZ QUESTIONS — EASY TO EDIT!
+    //  Format: { question, options (array of 3), correctIndex (0-2) }
+    // ============================================================
+    const quizQuestions = [
+        {
+            question: "Kiedy był nasz pierwszy pocałunek?",
+            options: ["27.09.2019", "29.09.2019", "02.10.2019"],
+            correctIndex: 1
+        },
+        {
+            question: "Kto pierwszy wysłał serce podczas pisania?",
+            options: ["On (ja!)", "Ona", "Nikt, do dziś czekamy"],
+            correctIndex: 0
+        },
+        {
+            question: "Co dostałaś ode mnie na 1. urodziny spędzone razem?",
+            options: ["Bon podarunkowy", "Zegarek", "AirPodsy Pro"],
+            correctIndex: 2
+        },
+        {
+            question: "Gdzie pojechaliśmy pierwszy raz autem po zdaniu przeze mnie prawka?",
+            options: ["Brzesko", "Nowy Sącz", "Limanowa"],
+            correctIndex: 1
+        },
+        {
+            question: "Jak myślisz, co jest dzisiejszą niespodzianką?",
+            options: ["Biżuteria", "Bon na torebkę", "Nic z tego! 🤫"],
+            correctIndex: 2
+        },
+    ];
+
+    // ============================================================
+    //  CONFIGURATION
+    // ============================================================
+    const CONFIG = {
+        LANE_COUNT: 3,
+        PLAYER_Y_RATIO: 0.82,          // player vertical position (% from top)
+        OBSTACLE_SPAWN_INTERVAL: 1200,  // ms between obstacles
+        OBSTACLE_SPEED: 3.5,            // base px per frame (scaled)
+        QUIZ_INTERVAL: 10000,           // ms between quizzes
+        GATE_SPEED: 2.5,               // answer gate speed (scaled)
+        INVINCIBILITY_TIME: 1500,       // ms after being hit
+        SWIPE_THRESHOLD: 30,            // px minimum swipe distance
+        INITIAL_LIVES: 3,
+        CORRECT_TO_WIN: 5,
+        BG_SCROLL_SPEED: 2,
+        LANE_TRANSITION_SPEED: 0.18,    // lerp factor for smooth lane change
+        CONFETTI_COUNT: 60,
+        // Colors (pastel palette)
+        COLOR_BG_TOP: '#e8f4f8',
+        COLOR_BG_BOTTOM: '#ffecd2',
+        COLOR_FLOOR: '#f0e6d3',
+        COLOR_LANE_DIVIDER: 'rgba(180, 160, 140, 0.3)',
+        COLOR_RUNWAY_LINE: 'rgba(255, 255, 255, 0.7)',
+        GATE_COLORS: ['#74b9ff', '#55efc4', '#fdcb6e'],
+        GATE_CORRECT_COLOR: '#00b894',
+        GATE_WRONG_COLOR: '#d63031',
+    };
+
+    // ============================================================
+    //  GAME STATE
+    // ============================================================
+    const STATES = { MENU: 0, RUNNING: 1, QUIZ: 2, GAME_OVER: 3, WIN: 4 };
+
+    let state = STATES.MENU;
+    let canvas, ctx;
+    let cW, cH;           // canvas width, height
+    let laneWidth;
+    let scaleFactor;       // scale relative to 400px reference width
+
+    // Player
+    let player = {
+        lane: 1,
+        x: 0,
+        targetX: 0,
+        y: 0,
+        size: 0,
+        invincibleUntil: 0,
+    };
+
+    // Game vars
+    let lives = CONFIG.INITIAL_LIVES;
+    let correctAnswers = 0;
+    let obstacles = [];
+    let gates = [];
+    let particles = [];       // confetti
+    let bgOffset = 0;
+    let lastObstacleSpawn = 0;
+    let quizTimer = 0;
+    let currentQuestionIndex = 0;
+    let lastFrameTime = 0;
+    let gameRunning = false;
+
+    // Touch tracking
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isSwiping = false;
+
+    // Obstacle emoji pool
+    const OBSTACLE_EMOJIS = ['🛒', '🚧', '🧱', '🪑'];
+
+    // Character sprite frames — 6 pre-cut transparent PNGs (no bleeding, clean alpha)
+    const SPRITE_FRAME_COUNT = 6;
+    let spriteFrames = [];
+    let loadedFrameCount = 0;
+
+    for (let f = 0; f < SPRITE_FRAME_COUNT; f++) {
+        const frameImg = new Image();
+        frameImg.src = `runner_${f}.png`;
+        frameImg.onload = () => {
+            loadedFrameCount++;
+        };
+        spriteFrames.push(frameImg);
+    }
+
+    // Boyfriend running sprite frames (6 frame sequence)
+    const HIM_FRAME_COUNT = 6;
+    let himFrames = [];
+    for (let f = 0; f < HIM_FRAME_COUNT; f++) {
+        const frameImg = new Image();
+        frameImg.src = `him_${f}.png`;
+        himFrames.push(frameImg);
+    }
+
+    // Speed multiplier scales up with each answered question!
+    function getSpeedMultiplier() {
+        return 1.0 + (correctAnswers * 0.18);
+    }
+
+
+
+    // ============================================================
+    //  SOUND FX SYSTEM (Web Audio API synthesis — 0ms instant latency)
+    // ============================================================
+    let audioCtx = null;
+
+    function initAudioContext() {
+        if (!audioCtx) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) {
+                audioCtx = new AudioContextClass();
+            }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    const SoundFX = {
+        // 1. Lane change / Swipe swoosh
+        playSwipe() {
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(280, now);
+                osc.frequency.exponentialRampToValueAtTime(650, now + 0.07);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.14);
+
+                gain.gain.setValueAtTime(0.01, now);
+                gain.gain.linearRampToValueAtTime(0.2, now + 0.03);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.14);
+            } catch (e) {}
+        },
+
+        // 2. Damage / Hit Obstacle (Punchy crunch impact)
+        playDamage() {
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+
+                // Low thud
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(35, now + 0.25);
+
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+
+                // Noise crunch
+                const bufferSize = Math.floor(audioCtx.sampleRate * 0.1);
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const noiseGain = audioCtx.createGain();
+                noiseGain.gain.setValueAtTime(0.3, now);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+                noise.connect(noiseGain);
+                noiseGain.connect(audioCtx.destination);
+                noise.start(now);
+            } catch (e) {}
+        },
+
+        // 3. Correct Answer (Bright joyful triple chime fanfare)
+        playCorrect() {
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 arpeggio
+
+                notes.forEach((freq, idx) => {
+                    const noteTime = now + idx * 0.065;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, noteTime);
+
+                    gain.gain.setValueAtTime(0.01, noteTime);
+                    gain.gain.linearRampToValueAtTime(0.28, noteTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.35);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start(noteTime);
+                    osc.stop(noteTime + 0.35);
+                });
+            } catch (e) {}
+        },
+
+        // 4. Wrong Answer (Dissonant descending 'uh-oh' buzzer)
+        playWrong() {
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                [220, 207].forEach((freq, idx) => {
+                    const noteTime = now + idx * 0.12;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(freq, noteTime);
+                    osc.frequency.linearRampToValueAtTime(freq - 45, noteTime + 0.2);
+
+                    gain.gain.setValueAtTime(0.28, noteTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, noteTime + 0.2);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start(noteTime);
+                    osc.stop(noteTime + 0.2);
+                });
+            } catch (e) {}
+        },
+
+        // 5. Button Click
+        playClick() {
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(750, now);
+                osc.frequency.exponentialRampToValueAtTime(380, now + 0.05);
+
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } catch (e) {}
+        }
+    };
+
+    // Global unlock on any first touch / click
+    window.addEventListener('pointerdown', initAudioContext, { once: true });
+
+    // ============================================================
+    //  DOM REFERENCES
+    // ============================================================
+    const $menuScreen = document.getElementById('menuScreen');
+    const $questionOverlay = document.getElementById('questionOverlay');
+    const $questionText = document.getElementById('questionText');
+    const $gameOverScreen = document.getElementById('gameOverScreen');
+    const $winScreen = document.getElementById('winScreen');
+    const $damageFlash = document.getElementById('damageFlash');
+    const $startBtn = document.getElementById('startBtn');
+    const $retryBtn = document.getElementById('retryBtn');
+    const $gameplaySong = document.getElementById('gameplaySong');
+    const $portugalSong = document.getElementById('portugalSong');
+    const $musicToggle = document.getElementById('musicToggle');
+    const $musicIcon = document.getElementById('musicIcon');
+    const $musicStatus = document.getElementById('musicStatus');
+
+
+    let sidewalkW = 0;
+
+    // Thematic obstacles pool with custom card colors & witty couple/daily life hurdles
+    const THEMATIC_OBSTACLES = [
+        { icon: '⏰', label: 'Budzik 6:00', bg1: '#ff7675', bg2: '#d63031' },
+        { icon: '📱', label: 'Szef dzwoni', bg1: '#74b9ff', bg2: '#0984e3' },
+        { icon: '📦', label: 'Paczka Vinted', bg1: '#ffeaa7', bg2: '#fdcb6e' },
+        { icon: '🌧️', label: 'Ulewa', bg1: '#81ecec', bg2: '#00cec9' },
+        { icon: '🍕', label: 'Pizza 23:00', bg1: '#fab1a0', bg2: '#e17055' },
+        { icon: '🔋', label: '1% Baterii', bg1: '#ff7675', bg2: '#c0392b' },
+    ];
+
+    // ============================================================
+    //  CANVAS SETUP & RESIZE
+    // ============================================================
+    canvas = document.getElementById('gameCanvas');
+    ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+        cW = window.innerWidth;
+        cH = window.innerHeight;
+        canvas.width = cW;
+        canvas.height = cH;
+        scaleFactor = cW / 400; // reference width 400px
+        sidewalkW = Math.round(Math.max(36 * scaleFactor, cW * 0.12));
+        laneWidth = (cW - sidewalkW * 2) / CONFIG.LANE_COUNT;
+        player.size = Math.round(44 * scaleFactor);
+        player.y = cH * CONFIG.PLAYER_Y_RATIO;
+        player.targetX = getLaneCenterX(player.lane);
+        player.x = player.targetX;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // ============================================================
+    //  HELPERS
+    // ============================================================
+    function getLaneCenterX(lane) {
+        return sidewalkW + laneWidth * lane + laneWidth / 2;
+    }
+
+    function showOverlay(el) { el.classList.remove('hidden'); }
+    function hideOverlay(el) { el.classList.add('hidden'); }
+
+    function flashDamage() {
+        $damageFlash.classList.add('active');
+        setTimeout(() => $damageFlash.classList.remove('active'), 50);
+    }
+
+    function shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    // ============================================================
+    //  PARTICLES (CONFETTI)
+    // ============================================================
+    function spawnConfetti(x, y) {
+        const colors = ['#ff6b6b', '#fdcb6e', '#55efc4', '#74b9ff', '#a29bfe', '#fd79a8', '#00b894'];
+        for (let i = 0; i < CONFIG.CONFETTI_COUNT; i++) {
+            particles.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 10 * scaleFactor,
+                vy: (Math.random() - 1) * 8 * scaleFactor - 2,
+                size: (3 + Math.random() * 5) * scaleFactor,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                rotation: Math.random() * Math.PI * 2,
+                rotSpeed: (Math.random() - 0.5) * 0.3,
+                life: 1.0,
+                decay: 0.008 + Math.random() * 0.012,
+                gravity: 0.15 * scaleFactor,
+            });
+        }
+    }
+
+    function updateParticles() {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.vy += p.gravity;
+            p.y += p.vy;
+            p.rotation += p.rotSpeed;
+            p.life -= p.decay;
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+            }
+        }
+    }
+
+    function drawParticles() {
+        for (const p of particles) {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.globalAlpha = Math.max(0, p.life);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            ctx.restore();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // ============================================================
+    //  BACKGROUND RENDERING — Sunset Promenade / Boulevard
+    // ============================================================
+    // ============================================================
+    //  BACKGROUND RENDERING — Sunny Mediterranean Promenade
+    // ============================================================
+    function drawBackground() {
+        // 1. Road surface — Warm sunny limestone / smooth pavers
+        const roadGrad = ctx.createLinearGradient(0, 0, 0, cH);
+        roadGrad.addColorStop(0, '#fbf3de');
+        roadGrad.addColorStop(0.5, '#f5e6c4');
+        roadGrad.addColorStop(1, '#ebd6ad');
+        ctx.fillStyle = roadGrad;
+        ctx.fillRect(0, 0, cW, cH);
+
+        // Subtle road tile seams
+        const tileH = 45 * scaleFactor;
+        const tileOffset = bgOffset % tileH;
+        ctx.strokeStyle = 'rgba(210, 180, 140, 0.35)';
+        ctx.lineWidth = 1;
+        for (let y = -tileH + tileOffset; y < cH + tileH; y += tileH) {
+            ctx.beginPath();
+            ctx.moveTo(sidewalkW, y);
+            ctx.lineTo(cW - sidewalkW, y);
+            ctx.stroke();
+        }
+
+        // 2. Left & Right Sidewalks (Terracotta stone)
+        const sidewalkGrad = ctx.createLinearGradient(0, 0, 0, cH);
+        sidewalkGrad.addColorStop(0, '#f8a5c2');
+        sidewalkGrad.addColorStop(0.5, '#f78fb3');
+        sidewalkGrad.addColorStop(1, '#f3a683');
+
+        ctx.fillStyle = sidewalkGrad;
+        ctx.fillRect(0, 0, sidewalkW, cH);
+        ctx.fillRect(cW - sidewalkW, 0, sidewalkW, cH);
+
+        // Sidewalk paving pattern
+        const stoneH = 30 * scaleFactor;
+        const stoneOffset = bgOffset % stoneH;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 1.2;
+        for (let y = -stoneH + stoneOffset; y < cH + stoneH; y += stoneH) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(sidewalkW, y);
+            ctx.moveTo(cW - sidewalkW, y);
+            ctx.lineTo(cW, y);
+            ctx.stroke();
+        }
+
+        // 3. Curbs (White & Coral street curb blocks)
+        const curbW = 5 * scaleFactor;
+        const curbBlockH = 24 * scaleFactor;
+        const curbOffset = bgOffset % (curbBlockH * 2);
+
+        for (let y = -curbBlockH * 2 + curbOffset; y < cH + curbBlockH * 2; y += curbBlockH) {
+            const isCoral = Math.floor((y - curbOffset) / curbBlockH) % 2 === 0;
+            ctx.fillStyle = isCoral ? '#ff6b6b' : '#ffffff';
+
+            ctx.fillRect(sidewalkW - curbW, y, curbW, curbBlockH);
+            ctx.fillRect(cW - sidewalkW, y, curbW, curbBlockH);
+        }
+
+        // 4. Lane Dividers (Dashed pastel white/golden lines)
+        const dashH = 32 * scaleFactor;
+        const dashGap = 24 * scaleFactor;
+        const dashW = 4 * scaleFactor;
+        const lineOffset = bgOffset % (dashH + dashGap);
+
+        for (let i = 1; i < CONFIG.LANE_COUNT; i++) {
+            const lx = sidewalkW + laneWidth * i;
+            for (let y = -dashH + lineOffset; y < cH; y += dashH + dashGap) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                ctx.fillRect(lx - dashW / 2, y, dashW, dashH);
+            }
+        }
+
+        // 5. Sidewalk Props (Palm trees & flower planters)
+        const propSpacing = 150 * scaleFactor;
+        const propOffset = bgOffset % propSpacing;
+
+        for (let y = -propSpacing + propOffset; y < cH + propSpacing; y += propSpacing) {
+            const step = Math.floor((y - propOffset) / propSpacing);
+
+            // Left side props
+            ctx.font = `${Math.round(22 * scaleFactor)}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(step % 2 === 0 ? '🌴' : '🌸', sidewalkW / 2, y);
+
+            // Right side props
+            ctx.fillText(step % 2 === 1 ? '🌴' : '🌺', cW - sidewalkW / 2, y);
+        }
+        ctx.textAlign = 'left';
+    }
+
+    // ============================================================
+    //  HUD (Crisp Vector Hearts & Score)
+    // ============================================================
+    function drawHeart(x, y, r, alpha) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(x, y);
+        const s = r / 14;
+
+        ctx.fillStyle = '#ff4757';
+        ctx.beginPath();
+        ctx.moveTo(0, 4 * s);
+        ctx.bezierCurveTo(-7 * s, -8 * s, -16 * s, 2 * s, 0, 16 * s);
+        ctx.bezierCurveTo(16 * s, 2 * s, 7 * s, -8 * s, 0, 4 * s);
+        ctx.fill();
+
+        // Highlight shine
+        if (alpha > 0.5) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.beginPath();
+            ctx.ellipse(-5 * s, 2 * s, 3 * s, 1.8 * s, -0.4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    function drawHUD() {
+        const padding = 16 * scaleFactor;
+        const heartSize = 18 * scaleFactor;
+
+        // Hearts (top left)
+        for (let i = 0; i < CONFIG.INITIAL_LIVES; i++) {
+            const hx = padding + i * (heartSize * 1.5);
+            const hy = padding + heartSize * 0.4;
+            drawHeart(hx, hy, heartSize, i < lives ? 1 : 0.25);
+        }
+
+        // Score (top right)
+        const scoreSize = Math.round(16 * scaleFactor);
+        ctx.font = `bold ${scoreSize}px 'Nunito', sans-serif`;
+        ctx.fillStyle = '#2d3436';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`✅ ${correctAnswers} / ${CONFIG.CORRECT_TO_WIN}`, cW - padding, padding + 2);
+        ctx.textAlign = 'left';
+    }
+
+    // ============================================================
+    // ============================================================
+    //  PLAYER RENDERING — Sprite sheet frame animation
+    // ============================================================
+    const BASE_ANIM_FPS = 10;
+
+    function drawPlayer() {
+        const now = performance.now();
+        if (player.invincibleUntil > now && Math.floor(now / 100) % 2 === 0) {
+            ctx.globalAlpha = 0.3;
+        }
+
+        if (spriteFrames.length > 0) {
+            // Speed up running frame rate as the game accelerates
+            const currentFPS = BASE_ANIM_FPS * getSpeedMultiplier();
+            const frameIndex = Math.floor((now / 1000) * currentFPS) % spriteFrames.length;
+            const frame = spriteFrames[frameIndex];
+
+            const spriteH = 100 * scaleFactor;
+            const spriteW = spriteH * (frame.width / frame.height);
+
+            // Subtle bounce synced to the run cycle
+            const bounce = Math.sin((frameIndex / spriteFrames.length) * Math.PI * 2) * 2.5 * scaleFactor;
+
+            ctx.save();
+            ctx.translate(player.x, player.y + bounce);
+            ctx.drawImage(frame, -spriteW / 2, -spriteH / 2, spriteW, spriteH);
+            ctx.restore();
+        } else {
+            // Fallback while sprite sheet is loading
+            ctx.font = `${player.size}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🏃‍♀️', player.x, player.y);
+            ctx.textAlign = 'left';
+        }
+
+        ctx.globalAlpha = 1;
+    }
+
+    // ============================================================
+    //  CHEERING BOYFRIEND COMPANION (Runs on the sidewalk)
+    // ============================================================
+    const CHEER_PHRASES = [
+        "Dasz radę! 💕",
+        "Dajesz kochanie! 🔥",
+        "Brawo! ✨",
+        "Kocham Cię! 🥰",
+        "Jesteś najlepsza! ❤️",
+        "Biegnij! 🏃‍♀️",
+        "Pięknie! 🌸"
+    ];
+
+    function drawCheeringBoyfriend() {
+        const now = performance.now();
+        const bfX = cW - sidewalkW * 0.5;
+        const bfY = player.y - 10 * scaleFactor;
+
+        if (himFrames.length > 0) {
+            // Dynamic running animation synced with game speed
+            const currentFPS = BASE_ANIM_FPS * getSpeedMultiplier();
+            const frameIndex = Math.floor((now / 1000) * currentFPS) % himFrames.length;
+            const frame = himFrames[frameIndex];
+
+            const spriteH = 92 * scaleFactor;
+            const spriteW = spriteH * (frame.width / frame.height);
+
+            // Stride bounce
+            const bounce = Math.sin((frameIndex / himFrames.length) * Math.PI * 2) * 2.8 * scaleFactor;
+
+            // Ground shadow on sidewalk
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+            ctx.beginPath();
+            ctx.ellipse(bfX, bfY + spriteH * 0.42, spriteW * 0.38, 5 * scaleFactor, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw animated boyfriend running
+            ctx.save();
+            ctx.translate(bfX, bfY + bounce);
+            ctx.drawImage(frame, -spriteW / 2, -spriteH / 2, spriteW, spriteH);
+            ctx.restore();
+
+            // Cheering Speech Bubble
+            const phraseIndex = Math.floor(now / 3200) % CHEER_PHRASES.length;
+            const phrase = CHEER_PHRASES[phraseIndex];
+            const bubbleOpacity = Math.sin((now % 3200) / 3200 * Math.PI); // smooth fade in and out
+
+            if (bubbleOpacity > 0.15) {
+                ctx.save();
+                ctx.globalAlpha = Math.min(1, bubbleOpacity * 1.6);
+
+                ctx.font = `bold ${Math.round(10.5 * scaleFactor)}px 'Nunito', sans-serif`;
+                const textW = ctx.measureText(phrase).width;
+                const bW = textW + 14 * scaleFactor;
+                const bH = 22 * scaleFactor;
+                const bX = Math.min(cW - bW / 2 - 4 * scaleFactor, Math.max(bW / 2 + 4 * scaleFactor, bfX - 10 * scaleFactor));
+                const bY = bfY - spriteH * 0.58 + bounce;
+
+                // Bubble background
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+                ctx.shadowBlur = 6 * scaleFactor;
+                ctx.shadowOffsetY = 2 * scaleFactor;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                ctx.beginPath();
+                ctx.roundRect(bX - bW / 2, bY - bH / 2, bW, bH, 8 * scaleFactor);
+                ctx.fill();
+
+                // Pointer tail
+                ctx.beginPath();
+                ctx.moveTo(bX - 4 * scaleFactor, bY + bH / 2);
+                ctx.lineTo(bX + 4 * scaleFactor, bY + bH / 2);
+                ctx.lineTo(bfX, bY + bH / 2 + 5 * scaleFactor);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.shadowColor = 'transparent';
+
+                // Bubble border
+                ctx.strokeStyle = '#fdcb6e';
+                ctx.lineWidth = 1.5 * scaleFactor;
+                ctx.beginPath();
+                ctx.roundRect(bX - bW / 2, bY - bH / 2, bW, bH, 8 * scaleFactor);
+                ctx.stroke();
+
+                // Text
+                ctx.fillStyle = '#2d3436';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(phrase, bX, bY);
+
+                ctx.restore();
+            }
+        }
+    }
+
+    // Feminine obstacle real 3D sprites (Bags, Matcha, Lipstick, Coach Bag, Peony Bouquet, Perfume)
+    const OBSTACLE_SPRITES = [];
+    for (let i = 0; i < 6; i++) {
+        const img = new Image();
+        img.src = `obs_${i}.png`;
+        OBSTACLE_SPRITES.push(img);
+    }
+
+    // ============================================================
+    //  OBSTACLES
+    // ============================================================
+    function spawnObstacle() {
+        const lane = Math.floor(Math.random() * CONFIG.LANE_COUNT);
+        const typeIndex = Math.floor(Math.random() * OBSTACLE_SPRITES.length);
+        obstacles.push({
+            lane: lane,
+            x: getLaneCenterX(lane),
+            y: -60 * scaleFactor,
+            size: Math.round(42 * scaleFactor),
+            typeIndex: typeIndex,
+            hit: false,
+        });
+    }
+
+    function updateObstacles(dt) {
+        const speed = CONFIG.OBSTACLE_SPEED * scaleFactor * (dt / 16) * getSpeedMultiplier();
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            const obs = obstacles[i];
+            obs.y += speed;
+            // Remove if off screen
+            if (obs.y > cH + 70) {
+                obstacles.splice(i, 1);
+                continue;
+            }
+            // Collision with player
+            if (!obs.hit && collides(player, obs)) {
+                obs.hit = true;
+                takeDamage();
+            }
+        }
+    }
+
+    function drawObstacles() {
+        for (const obs of obstacles) {
+            const img = OBSTACLE_SPRITES[obs.typeIndex];
+            if (!img || !img.complete) continue;
+
+            const h = 56 * scaleFactor;
+            const w = h * (img.naturalWidth / img.naturalHeight);
+
+            // Realistic ground shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+            ctx.beginPath();
+            ctx.ellipse(obs.x, obs.y + h * 0.38, w * 0.42, 7 * scaleFactor, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw real 3D obstacle sprite
+            ctx.drawImage(img, obs.x - w / 2, obs.y - h / 2, w, h);
+        }
+    }
+
+    // ============================================================
+    //  ANSWER GATES
+    // ============================================================
+    function spawnGates(questionIndex) {
+        const q = quizQuestions[questionIndex];
+        gates = [];
+        for (let i = 0; i < 3; i++) {
+            gates.push({
+                lane: i,
+                x: getLaneCenterX(i),
+                y: -80 * scaleFactor,
+                width: laneWidth * 0.85,
+                height: 55 * scaleFactor,
+                text: q.options[i],
+                optionIndex: i,
+                isCorrect: i === q.correctIndex,
+                hit: false,
+                color: CONFIG.GATE_COLORS[i],
+            });
+        }
+    }
+
+    function updateGates(dt) {
+        const speed = CONFIG.GATE_SPEED * scaleFactor * (dt / 16) * getSpeedMultiplier();
+        for (let i = gates.length - 1; i >= 0; i--) {
+            const gate = gates[i];
+            gate.y += speed;
+            // Remove if off screen
+            if (gate.y > cH + 100) {
+                // Missed all gates — treat as wrong answer
+                gates = [];
+                takeDamage();
+                SoundFX.playWrong();
+                endQuizPhase();
+                return;
+            }
+            // Collision with player
+            if (!gate.hit && collidesGate(player, gate)) {
+                gate.hit = true;
+                if (gate.isCorrect) {
+                    correctAnswers++;
+                    SoundFX.playCorrect();
+                    spawnConfetti(player.x, player.y - 20 * scaleFactor);
+                    gates = [];
+                    if (correctAnswers >= CONFIG.CORRECT_TO_WIN) {
+                        winGame();
+                    } else {
+                        endQuizPhase();
+                    }
+                    return;
+                } else {
+                    SoundFX.playWrong();
+                    takeDamage();
+                    gates = [];
+                    endQuizPhase();
+                    return;
+                }
+            }
+        }
+    }
+
+    function drawGates() {
+        for (const gate of gates) {
+            const x = gate.x - gate.width / 2;
+            const y = gate.y - gate.height / 2;
+            const r = 14 * scaleFactor;
+
+            // Shadow
+            ctx.shadowColor = 'rgba(0,0,0,0.15)';
+            ctx.shadowBlur = 10 * scaleFactor;
+            ctx.shadowOffsetY = 4 * scaleFactor;
+
+            // Background
+            ctx.fillStyle = gate.color;
+            ctx.beginPath();
+            ctx.roundRect(x, y, gate.width, gate.height, r);
+            ctx.fill();
+
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+
+            // Border
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+            ctx.lineWidth = 2.5 * scaleFactor;
+            ctx.beginPath();
+            ctx.roundRect(x, y, gate.width, gate.height, r);
+            ctx.stroke();
+
+            // Text rendering (responsive & multi-line support)
+            ctx.fillStyle = '#2d3436';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const maxW = gate.width - 12 * scaleFactor;
+            let fontSize = Math.round(13 * scaleFactor);
+            ctx.font = `bold ${fontSize}px 'Nunito', sans-serif`;
+
+            // If text exceeds width, scale font or split into two lines
+            if (ctx.measureText(gate.text).width > maxW) {
+                const words = gate.text.split(' ');
+                if (words.length >= 2 && words.length <= 4) {
+                    const mid = Math.ceil(words.length / 2);
+                    const line1 = words.slice(0, mid).join(' ');
+                    const line2 = words.slice(mid).join(' ');
+                    const lineFontSize = Math.round(11.5 * scaleFactor);
+                    ctx.font = `bold ${lineFontSize}px 'Nunito', sans-serif`;
+                    ctx.fillText(line1, gate.x, gate.y - 7 * scaleFactor);
+                    ctx.fillText(line2, gate.x, gate.y + 7 * scaleFactor);
+                } else {
+                    fontSize = Math.round(Math.max(10, fontSize * (maxW / ctx.measureText(gate.text).width)));
+                    ctx.font = `bold ${fontSize}px 'Nunito', sans-serif`;
+                    ctx.fillText(gate.text, gate.x, gate.y);
+                }
+            } else {
+                ctx.fillText(gate.text, gate.x, gate.y);
+            }
+        }
+        ctx.textAlign = 'left';
+    }
+
+    // ============================================================
+    //  COLLISION DETECTION
+    // ============================================================
+    function collides(playerObj, obs) {
+        const px = playerObj.x;
+        const py = playerObj.y;
+        const pr = playerObj.size * 0.35;
+        const ox = obs.x;
+        const oy = obs.y;
+        const or = obs.size * 0.35;
+        const dx = px - ox;
+        const dy = py - oy;
+        return (dx * dx + dy * dy) < (pr + or) * (pr + or);
+    }
+
+    function collidesGate(playerObj, gate) {
+        const px = playerObj.x;
+        const py = playerObj.y;
+        const pr = playerObj.size * 0.3;
+        const gx1 = gate.x - gate.width / 2;
+        const gy1 = gate.y - gate.height / 2;
+        const gx2 = gate.x + gate.width / 2;
+        const gy2 = gate.y + gate.height / 2;
+        return px + pr > gx1 && px - pr < gx2 && py + pr > gy1 && py - pr < gy2;
+    }
+
+    // ============================================================
+    //  DAMAGE & GAME FLOW
+    // ============================================================
+    function takeDamage() {
+        const now = performance.now();
+        if (player.invincibleUntil > now) return;
+
+        lives--;
+        player.invincibleUntil = now + CONFIG.INVINCIBILITY_TIME;
+        flashDamage();
+        SoundFX.playDamage();
+
+        if (lives <= 0) {
+            gameOver();
+        }
+    }
+
+    function startQuizPhase() {
+        if (currentQuestionIndex >= quizQuestions.length) {
+            // No more questions — recycle
+            currentQuestionIndex = 0;
+        }
+        state = STATES.QUIZ;
+        const q = quizQuestions[currentQuestionIndex];
+        $questionText.textContent = q.question;
+        showOverlay($questionOverlay);
+        spawnGates(currentQuestionIndex);
+        currentQuestionIndex++;
+    }
+
+    function endQuizPhase() {
+        state = STATES.RUNNING;
+        hideOverlay($questionOverlay);
+        quizTimer = performance.now();
+    }
+
+    function gameOver() {
+        state = STATES.GAME_OVER;
+        gameRunning = false;
+        if ($gameplaySong) $gameplaySong.pause();
+        hideOverlay($questionOverlay);
+        showOverlay($gameOverScreen);
+    }
+
+    function winGame() {
+        state = STATES.WIN;
+        gameRunning = false;
+        if ($gameplaySong) $gameplaySong.pause();
+        hideOverlay($questionOverlay);
+
+        // Play Portugal song by M4IA
+        if ($portugalSong) {
+            $portugalSong.currentTime = 0;
+            $portugalSong.volume = 0.95;
+            $portugalSong.play().catch(e => console.log('Audio autoplay prevented:', e));
+        }
+
+        // Big confetti burst
+        for (let i = 0; i < 6; i++) {
+            setTimeout(() => {
+                spawnConfetti(Math.random() * cW, Math.random() * cH * 0.5);
+            }, i * 200);
+        }
+
+        // Show win screen after a brief delay to enjoy confetti
+        setTimeout(() => {
+            showOverlay($winScreen);
+        }, 800);
+    }
+
+    function resetGame() {
+        lives = CONFIG.INITIAL_LIVES;
+        correctAnswers = 0;
+        currentQuestionIndex = 0;
+        obstacles = [];
+        gates = [];
+        particles = [];
+        player.lane = 1;
+        player.x = getLaneCenterX(1);
+        player.targetX = player.x;
+        player.invincibleUntil = 0;
+        bgOffset = 0;
+        lastObstacleSpawn = 0;
+        quizTimer = 0;
+    }
+
+    function startGame() {
+        initAudioContext();
+        SoundFX.playClick();
+
+        // Stop victory song if playing
+        if ($portugalSong) {
+            $portugalSong.pause();
+            $portugalSong.currentTime = 0;
+        }
+
+        // Play suspenseful gameplay music
+        if ($gameplaySong) {
+            $gameplaySong.currentTime = 0;
+            $gameplaySong.volume = 0.45;
+            $gameplaySong.play().catch(e => console.log('Gameplay audio error:', e));
+        }
+
+        resetGame();
+        state = STATES.RUNNING;
+        gameRunning = true;
+        hideOverlay($menuScreen);
+        hideOverlay($gameOverScreen);
+        hideOverlay($winScreen);
+        hideOverlay($questionOverlay);
+        lastFrameTime = performance.now();
+        quizTimer = performance.now();
+        lastObstacleSpawn = performance.now();
+        requestAnimationFrame(gameLoop);
+    }
+
+    // ============================================================
+    //  INPUT HANDLING
+    // ============================================================
+    function changeLane(direction) {
+        if (state !== STATES.RUNNING && state !== STATES.QUIZ) return;
+        const newLane = player.lane + direction;
+        if (newLane >= 0 && newLane < CONFIG.LANE_COUNT) {
+            player.lane = newLane;
+            player.targetX = getLaneCenterX(newLane);
+            SoundFX.playSwipe();
+        }
+    }
+
+    // Keyboard
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'a') changeLane(-1);
+        if (e.key === 'ArrowRight' || e.key === 'd') changeLane(1);
+    });
+
+    // Touch (Swipe)
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        isSwiping = true;
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        if (!isSwiping) return;
+        isSwiping = false;
+        const touch = e.changedTouches[0];
+        const dx = touch.clientX - touchStartX;
+        const dy = touch.clientY - touchStartY;
+        // Only register horizontal swipes (horizontal > vertical movement)
+        if (Math.abs(dx) > CONFIG.SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy) * 0.6) {
+            changeLane(dx > 0 ? 1 : -1);
+        }
+    }, { passive: false });
+
+    // Buttons
+    $startBtn.addEventListener('click', startGame);
+    $retryBtn.addEventListener('click', startGame);
+
+    // Music toggle button
+    if ($musicToggle && $portugalSong) {
+        $musicToggle.addEventListener('click', () => {
+            if ($portugalSong.paused) {
+                $portugalSong.play();
+                if ($musicIcon) $musicIcon.textContent = '🎵';
+                if ($musicStatus) $musicStatus.textContent = 'M4IA - Portugal';
+            } else {
+                $portugalSong.pause();
+                if ($musicIcon) $musicIcon.textContent = '⏸️';
+                if ($musicStatus) $musicStatus.textContent = 'Wstrzymano';
+            }
+        });
+    }
+
+    // ============================================================
+    //  GAME LOOP
+    // ============================================================
+    function gameLoop(timestamp) {
+        if (!gameRunning && state !== STATES.WIN) return;
+
+        const dt = Math.min(timestamp - lastFrameTime, 50); // cap delta to 50ms
+        lastFrameTime = timestamp;
+
+        // --- UPDATE ---
+
+        // Background scroll
+        bgOffset += CONFIG.BG_SCROLL_SPEED * scaleFactor * (dt / 16) * getSpeedMultiplier();
+
+        // Player smooth lane transition
+        player.x += (player.targetX - player.x) * CONFIG.LANE_TRANSITION_SPEED;
+
+        if (state === STATES.RUNNING) {
+            // Spawn obstacles (faster as game accelerates)
+            const spawnInterval = Math.max(1100, CONFIG.OBSTACLE_SPAWN_INTERVAL / getSpeedMultiplier());
+            if (timestamp - lastObstacleSpawn > spawnInterval) {
+                spawnObstacle();
+                lastObstacleSpawn = timestamp;
+            }
+            // Update obstacles
+            updateObstacles(dt);
+
+            // Check quiz timer
+            if (timestamp - quizTimer > CONFIG.QUIZ_INTERVAL) {
+                startQuizPhase();
+            }
+        }
+
+        if (state === STATES.QUIZ) {
+            // Still move existing obstacles off screen
+            updateObstacles(dt);
+            // Update answer gates
+            updateGates(dt);
+        }
+
+        // Particles always update (for confetti during win)
+        updateParticles();
+
+        // --- DRAW ---
+        drawBackground();
+
+        if (state === STATES.RUNNING || state === STATES.QUIZ) {
+            drawObstacles();
+            drawGates();
+            drawPlayer();
+            drawCheeringBoyfriend();
+            drawHUD();
+        }
+
+        drawParticles();
+
+        // Continue loop
+        if (state === STATES.WIN) {
+            // Keep drawing particles for confetti effect, then stop
+            if (particles.length > 0) {
+                requestAnimationFrame(gameLoop);
+            }
+        } else if (gameRunning) {
+            requestAnimationFrame(gameLoop);
+        }
+    }
+
+    // ============================================================
+    //  roundRect POLYFILL (for older browsers)
+    // ============================================================
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+            if (typeof r === 'number') r = [r, r, r, r];
+            const [tl, tr, br, bl] = r;
+            this.moveTo(x + tl, y);
+            this.lineTo(x + w - tr, y);
+            this.quadraticCurveTo(x + w, y, x + w, y + tr);
+            this.lineTo(x + w, y + h - br);
+            this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+            this.lineTo(x + bl, y + h);
+            this.quadraticCurveTo(x, y + h, x, y + h - bl);
+            this.lineTo(x, y + tl);
+            this.quadraticCurveTo(x, y, x + tl, y);
+            this.closePath();
+            return this;
+        };
+    }
+    </script>
+</body>
+</html>
